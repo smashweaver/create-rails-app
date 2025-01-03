@@ -1,0 +1,46 @@
+{
+  "name": "create-rails-app",
+  "version": "0.1.0",
+  "description": "A CLI tool to bootstrap Ruby on Rails projects using RVM.",
+  "bin": {
+    "create-rails-app": "./bin/create.sh"
+  },
+  "scripts": {
+    "postinstall": "chmod +x ./bin/create.sh",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "./bin/create.sh",
+    "dev:with-args": "./bin/create.sh --ruby 3.3.6 --rails 8.0.0 --name test_project"
+  },
+  "files": [
+    "bin/create.sh"
+  ],
+  "keywords": [
+    "rails",
+    "rvm",
+    "cli",
+    "ruby",
+    "ruby-on-rails",
+    "project-generator"
+  ],
+  "author": {
+    "name": "Jason D. Jimenez",
+    "email": "jasonjimenez@live.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/smashweaver/create-rails-app.git"
+  },
+  "bugs": {
+    "url": "https://github.com/smashweaver/create-rails-app/issues"
+  },
+  "homepage": "https://github.com/smashweaver/create-rails-app#readme",
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "os": [
+    "!win32"
+  ],
+  "license": "MIT",
+  "dependencies": {},
+  "devDependencies": {}
+}

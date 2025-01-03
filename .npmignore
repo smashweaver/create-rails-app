@@ -1,0 +1,27 @@
+# Development files
+.git*
+.npmignore
+.editorconfig
+.eslintrc
+.prettierrc
+
+# Tests
+test/
+tests/
+__tests__/
+
+# Documentation
+docs/
+contributing.md
+
+# Source maps
+*.map
+
+# IDE specific files
+.idea/
+.vscode/
+*.sublime-*
+
+# OS generated files
+.DS_Store
+Thumbs.db
