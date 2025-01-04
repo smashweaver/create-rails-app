@@ -40,7 +40,5 @@
   "os": [
     "!win32"
   ],
-  "license": "MIT",
-  "dependencies": {},
-  "devDependencies": {}
+  "license": "MIT"
 }

@@ -76,27 +76,22 @@ fi
 # Install the specified Ruby version
 rvm install "$RUBY_VERSION"
 
-# Use the specified Ruby version
-rvm use "$RUBY_VERSION"
-
-# Create .ruby-version file
-echo "$RUBY_VERSION" > .ruby-version
-
-# Create a gemset for the project
-rvm gemset create "$PROJECT_NAME"
-
-# Create .ruby-gemset file
-echo "$PROJECT_NAME" > .ruby-gemset
-
-# Use the gemset
-rvm gemset use "$RUBY_VERSION@$PROJECT_NAME"
-# rvm use $(cat .ruby-version)@$(cat .ruby-gemset)
-
-bash
+# Create and use the gemset for the project
+rvm use "$RUBY_VERSION@$PROJECT_NAME" --create
 
 # Install Rails with the specified version
 gem install rails -v "$RAILS_VERSION"
 
-# Print success message
+# Create rails project
 rails new "$PROJECT_NAME"
+
+cd "$PROJECT_NAME"
+
+# Create .ruby-version file
+echo "$RUBY_VERSION" > .ruby-version
+
+# Create .ruby-gemset file
+echo "$PROJECT_NAME" > .ruby-gemset
+
+# Print success message
 echo "Rails project '$PROJECT_NAME' created with Ruby $RUBY_VERSION and Rails $RAILS_VERSION"
