@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "description": "A CLI tool to bootstrap Ruby on Rails projects using RVM.",
   "bin": {
-    "create-rails-app": "./bin/create.sh"
+    "create-rails-app": "bin/create.sh"
   },
   "scripts": {
     "postinstall": "chmod +x ./bin/create.sh",
