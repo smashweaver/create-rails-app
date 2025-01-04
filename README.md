@@ -9,7 +9,11 @@ A CLI tool to bootstrap Ruby on Rails projects using RVM.
 
 ## Usage
 
-You can run this tool directly using npx (recommended):
+```bash
+npm create rails-app@latest [options]
+```
+
+Or you can run this tool directly using npx:
 
 ```bash
 npx create-rails-app [options]
@@ -33,18 +37,16 @@ create-rails-app [options]
 ### Examples
 
 ```bash
-# Using npx (no installation required)
+npm create rails-app@latest
+npm create rails-app@latest --ruby 3.2.0 --rails 7.1.0 --name my-rails-app
+
+# Or using npx (no installation required)
 npx create-rails-app
 npx create-rails-app --ruby 3.2.0 --rails 7.1.0 --name my-rails-app
 
 # Or if installed globally
 create-rails-app
 create-rails-app --ruby 3.2.0 --rails 7.1.0 --name my-rails-app
-
-# Or
-npm create rails-app@latest
-npm create rails-app@latest --ruby 3.2.0 --rails 7.1.0 --name my-rails-app
-
 ```
 
 ## Features
