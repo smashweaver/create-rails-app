@@ -7,12 +7,15 @@
   },
   "scripts": {
     "postinstall": "chmod +x ./bin/create.sh",
+    "prepublish": "chmod +x ./bin/create.sh",
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "./bin/create.sh",
     "dev:with-args": "./bin/create.sh --ruby 3.3.6 --rails 8.0.0 --name test_project"
   },
   "files": [
-    "bin/create.sh"
+    "bin/create.sh",
+    "README.md",
+    "LICENSE"
   ],
   "keywords": [
     "rails",
@@ -35,10 +38,12 @@
   },
   "homepage": "https://github.com/smashweaver/create-rails-app#readme",
   "engines": {
-    "node": ">=14.0.0"
+    "node": ">=14.0.0",
+    "npm": ">=6.0.0"
   },
   "os": [
     "!win32"
   ],
+  "preferGlobal": true,
   "license": "MIT"
 }

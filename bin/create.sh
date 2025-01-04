@@ -7,6 +7,17 @@ if ! command -v rvm &> /dev/null; then
   exit 1
 fi
 
+# Function to display help message
+show_help() {
+  echo "Usage: create-rails-app [options]"
+  echo "Options:"
+  echo "  --ruby <version>    Specify Ruby version (default: 3.3.6)"
+  echo "  --rails <version>   Specify Rails version (default: 8.0.1)"
+  echo "  --name <name>       Specify project name (default: myapp)"
+  echo "  --help              Show this help message"
+  exit 0
+}
+
 # Function to prompt for input with a default value
 prompt_for_input() {
   local prompt="$1"
@@ -34,6 +45,9 @@ while [[ "$#" -gt 0 ]]; do
       PROJECT_NAME="$2"
       shift 2
       ;;
+    --help)
+      show_help
+      ;;
     *)
       echo "Unknown option: $1" >&2
       exit 1
@@ -51,15 +65,25 @@ RUBY_VERSION=$(prompt_for_input "Enter Ruby version" "$DEFAULT_RUBY_VERSION")
 RAILS_VERSION=${RAILS_VERSION:-$(prompt_for_input "Enter Rails version" "$DEFAULT_RAILS_VERSION")}
 PROJECT_NAME=${PROJECT_NAME:-$(prompt_for_input "Enter project name" "$DEFAULT_PROJECT_NAME")}
 
+# Validate project name
+if [[ ! "$PROJECT_NAME" =~ ^[a-zA-Z0-9_-]+$ ]]; then
+  echo "Error: Invalid project name. Only letters, numbers, hyphens, and underscores are allowed." >&2
+  exit 1
+fi
+
+# Check if project directory already exists
+if [[ -d "$PROJECT_NAME" ]]; then
+  echo "Error: Directory '$PROJECT_NAME' already exists. Please choose a different project name." >&2
+  exit 1
+fi
+
 echo "You entered the following:"
 echo "Project name: $PROJECT_NAME"
 echo "Ruby version: $RUBY_VERSION"
 echo "Rails version: $RAILS_VERSION"
 
-
 # Regular expressions for version validation
 VERSION_REGEX="^[0-9]+(\\.[0-9]+)*$"
-# VERSION_REGEX="^[0-9]+(?:\.[0-9]+)*$"
 
 # Validate Ruby version
 if [[ ! "$RUBY_VERSION" =~ $VERSION_REGEX ]]; then
@@ -74,16 +98,32 @@ if [[ ! "$RAILS_VERSION" =~ $VERSION_REGEX ]]; then
 fi
 
 # Install the specified Ruby version
-rvm install "$RUBY_VERSION"
+echo "Installing Ruby $RUBY_VERSION..."
+if ! rvm install "$RUBY_VERSION"; then
+  echo "Error: Failed to install Ruby $RUBY_VERSION." >&2
+  exit 1
+fi
 
 # Create and use the gemset for the project
-rvm use "$RUBY_VERSION@$PROJECT_NAME" --create
+echo "Creating gemset '$PROJECT_NAME' for Ruby $RUBY_VERSION..."
+if ! rvm use "$RUBY_VERSION@$PROJECT_NAME" --create; then
+  echo "Error: Failed to create or use gemset '$PROJECT_NAME'." >&2
+  exit 1
+fi
 
 # Install Rails with the specified version
-gem install rails -v "$RAILS_VERSION"
+echo "Installing Rails $RAILS_VERSION..."
+if ! gem install rails -v "$RAILS_VERSION"; then
+  echo "Error: Failed to install Rails $RAILS_VERSION." >&2
+  exit 1
+fi
 
-# Create rails project
-rails new "$PROJECT_NAME"
+# Create Rails project
+echo "Creating Rails project '$PROJECT_NAME'..."
+if ! rails new "$PROJECT_NAME"; then
+  echo "Error: Failed to create Rails project '$PROJECT_NAME'." >&2
+  exit 1
+fi
 
 cd "$PROJECT_NAME"
 
