@@ -27,19 +27,24 @@ create-rails-app [options]
 ### Options
 
 - `--ruby <version>`: Specify Ruby version (default: 3.3.6)
-- `--rails <version>`: Specify Rails version (default: 8.0.0)
-- `--name <name>`: Specify project name (default: my_rails_project)
+- `--rails <version>`: Specify Rails version (default: 8.0.1)
+- `--name <name>`: Specify project name (default: myapp)
 
 ### Examples
 
 ```bash
 # Using npx (no installation required)
 npx create-rails-app
-npx create-rails-app --ruby 3.2.0 --rails 7.1.0 --name my_awesome_app
+npx create-rails-app --ruby 3.2.0 --rails 7.1.0 --name my-rails-app
 
 # Or if installed globally
 create-rails-app
-create-rails-app --ruby 3.2.0 --rails 7.1.0 --name my_awesome_app
+create-rails-app --ruby 3.2.0 --rails 7.1.0 --name my-rails-app
+
+# Or
+npm create rails-app@latest
+npm create rails-app@latest --ruby 3.2.0 --rails 7.1.0 --name my-rails-app
+
 ```
 
 ## Features
