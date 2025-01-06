@@ -14,6 +14,7 @@ show_help() {
   echo "  --ruby <version>    Specify Ruby version (default: 3.3.6)"
   echo "  --rails <version>   Specify Rails version (default: 8.0.1)"
   echo "  --name <name>       Specify project name (default: myapp)"
+  echo "  --database <db>     Specify database (options: postgresql, mysql, sqlite3; default: postgresql)"
   echo "  --help              Show this help message"
   exit 0
 }
@@ -45,6 +46,10 @@ while [[ "$#" -gt 0 ]]; do
       PROJECT_NAME="$2"
       shift 2
       ;;
+    --database)
+      DATABASE="$2"
+      shift 2
+      ;;
     --help)
       show_help
       ;;
@@ -59,11 +64,13 @@ done
 DEFAULT_RUBY_VERSION="3.3.6"
 DEFAULT_RAILS_VERSION="8.0.1"
 DEFAULT_PROJECT_NAME="myapp"
+DEFAULT_DATABASE="postgresql"
 
 # Prompt for Ruby version even if it's provided as a command-line argument
 RUBY_VERSION=$(prompt_for_input "Enter Ruby version" "$DEFAULT_RUBY_VERSION")
 RAILS_VERSION=${RAILS_VERSION:-$(prompt_for_input "Enter Rails version" "$DEFAULT_RAILS_VERSION")}
 PROJECT_NAME=${PROJECT_NAME:-$(prompt_for_input "Enter project name" "$DEFAULT_PROJECT_NAME")}
+DATABASE=${DATABASE:-$(prompt_for_input "Enter database (postgresql, mysql, sqlite3)" "$DEFAULT_DATABASE")}
 
 # Validate project name
 if [[ ! "$PROJECT_NAME" =~ ^[a-zA-Z0-9_-]+$ ]]; then
@@ -77,10 +84,17 @@ if [[ -d "$PROJECT_NAME" ]]; then
   exit 1
 fi
 
+# Validate database choice
+if [[ ! "$DATABASE" =~ ^(postgresql|mysql|sqlite3)$ ]]; then
+  echo "Error: Invalid database choice. Must be one of: postgresql, mysql, sqlite3." >&2
+  exit 1
+fi
+
 echo "You entered the following:"
 echo "Project name: $PROJECT_NAME"
 echo "Ruby version: $RUBY_VERSION"
 echo "Rails version: $RAILS_VERSION"
+echo "Database: $DATABASE"
 
 # Regular expressions for version validation
 VERSION_REGEX="^[0-9]+(\\.[0-9]+)*$"
@@ -118,9 +132,9 @@ if ! gem install rails -v "$RAILS_VERSION"; then
   exit 1
 fi
 
-# Create Rails project
-echo "Creating Rails project '$PROJECT_NAME'..."
-if ! rails new "$PROJECT_NAME"; then
+# Create Rails project with the specified database
+echo "Creating Rails project '$PROJECT_NAME' with database '$DATABASE'..."
+if ! rails new "$PROJECT_NAME" --database="$DATABASE"; then
   echo "Error: Failed to create Rails project '$PROJECT_NAME'." >&2
   exit 1
 fi
@@ -134,4 +148,7 @@ echo "$RUBY_VERSION" > .ruby-version
 echo "$PROJECT_NAME" > .ruby-gemset
 
 # Print success message
-echo "Rails project '$PROJECT_NAME' created with Ruby $RUBY_VERSION and Rails $RAILS_VERSION"
+echo "Rails project '$PROJECT_NAME' created with:"
+echo "  Ruby version: $RUBY_VERSION"
+echo "  Rails version: $RAILS_VERSION"
+echo "  Database: $DATABASE"
