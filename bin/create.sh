@@ -15,6 +15,7 @@ show_help() {
   echo "  --rails <version>   Specify Rails version (default: 8.0.1)"
   echo "  --name <name>       Specify project name (default: myapp)"
   echo "  --database <db>     Specify database (options: postgresql, mysql, sqlite3; default: postgresql)"
+  echo "  --api               Create an API-only Rails project (default: full-stack)"
   echo "  --help              Show this help message"
   exit 0
 }
@@ -50,6 +51,10 @@ while [[ "$#" -gt 0 ]]; do
       DATABASE="$2"
       shift 2
       ;;
+    --api)
+      API_ONLY=true
+      shift
+      ;;
     --help)
       show_help
       ;;
@@ -66,11 +71,28 @@ DEFAULT_RAILS_VERSION="8.0.1"
 DEFAULT_PROJECT_NAME="myapp"
 DEFAULT_DATABASE="postgresql"
 
-# Prompt for Ruby version even if it's provided as a command-line argument
-RUBY_VERSION=$(prompt_for_input "Enter Ruby version" "$DEFAULT_RUBY_VERSION")
-RAILS_VERSION=${RAILS_VERSION:-$(prompt_for_input "Enter Rails version" "$DEFAULT_RAILS_VERSION")}
-PROJECT_NAME=${PROJECT_NAME:-$(prompt_for_input "Enter project name" "$DEFAULT_PROJECT_NAME")}
-DATABASE=${DATABASE:-$(prompt_for_input "Enter database (postgresql, mysql, sqlite3)" "$DEFAULT_DATABASE")}
+# Only prompt for Ruby version if not provided via command-line argument
+if [[ -z "$RUBY_VERSION" ]]; then
+  RUBY_VERSION=$(prompt_for_input "Enter Ruby version" "$DEFAULT_RUBY_VERSION")
+fi
+
+# Remove 'ruby-' prefix if present
+RUBY_VERSION="${RUBY_VERSION//ruby-/}"
+
+# Only prompt for Rails version if not provided via command-line argument
+if [[ -z "$RAILS_VERSION" ]]; then
+  RAILS_VERSION=$(prompt_for_input "Enter Rails version" "$DEFAULT_RAILS_VERSION")
+fi
+
+# Only prompt for project name if not provided via command-line argument
+if [[ -z "$PROJECT_NAME" ]]; then
+  PROJECT_NAME=$(prompt_for_input "Enter project name" "$DEFAULT_PROJECT_NAME")
+fi
+
+# Only prompt for database if not provided via command-line argument
+if [[ -z "$DATABASE" ]]; then
+  DATABASE=$(prompt_for_input "Enter database (postgresql, mysql, sqlite3)" "$DEFAULT_DATABASE")
+fi
 
 # Validate project name
 if [[ ! "$PROJECT_NAME" =~ ^[a-zA-Z0-9_-]+$ ]]; then
@@ -95,6 +117,7 @@ echo "Project name: $PROJECT_NAME"
 echo "Ruby version: $RUBY_VERSION"
 echo "Rails version: $RAILS_VERSION"
 echo "Database: $DATABASE"
+echo "API-only: ${API_ONLY:-false}"
 
 # Regular expressions for version validation
 VERSION_REGEX="^[0-9]+(\\.[0-9]+)*$"
@@ -132,14 +155,27 @@ if ! gem install rails -v "$RAILS_VERSION"; then
   exit 1
 fi
 
-# Create Rails project with the specified database
-echo "Creating Rails project '$PROJECT_NAME' with database '$DATABASE'..."
-if ! rails new "$PROJECT_NAME" --database="$DATABASE"; then
+# Build the rails new command
+RAILS_NEW_COMMAND="rails new $PROJECT_NAME --database=$DATABASE"
+if [[ "$API_ONLY" == true ]]; then
+  RAILS_NEW_COMMAND="$RAILS_NEW_COMMAND --api"
+fi
+
+# Create Rails project
+echo "Creating Rails project '$PROJECT_NAME'..."
+if ! eval "$RAILS_NEW_COMMAND"; then
   echo "Error: Failed to create Rails project '$PROJECT_NAME'." >&2
   exit 1
 fi
 
 cd "$PROJECT_NAME"
+
+# Install missing gems
+echo "Installing missing gems..."
+if ! bundle install; then
+  echo "Error: Failed to install missing gems. Please check your Gemfile and try again." >&2
+  exit 1
+fi
 
 # Create .ruby-version file
 echo "$RUBY_VERSION" > .ruby-version
@@ -152,3 +188,4 @@ echo "Rails project '$PROJECT_NAME' created with:"
 echo "  Ruby version: $RUBY_VERSION"
 echo "  Rails version: $RAILS_VERSION"
 echo "  Database: $DATABASE"
+echo "  API-only: ${API_ONLY:-false}"

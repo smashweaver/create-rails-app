@@ -33,20 +33,26 @@ create-rails-app [options]
 - `--ruby <version>`: Specify Ruby version (default: 3.3.6)
 - `--rails <version>`: Specify Rails version (default: 8.0.1)
 - `--name <name>`: Specify project name (default: myapp)
+- `--database <db>`: Specify database (options: postgresql, mysql, sqlite3; default: postgresql)
+- `--api`: Create an API-only Rails project (default: full-stack)
 
 ### Examples
 
 ```bash
 npm create rails-app@latest
 npm create rails-app@latest --ruby 3.2.0 --rails 7.1.0 --name my-rails-app
+npm create rails-app@latest --api --database postgresql
+npm create rails-app@latest --database mysql
 
 # Or using npx (no installation required)
 npx create-rails-app
 npx create-rails-app --ruby 3.2.0 --rails 7.1.0 --name my-rails-app
+npx create-rails-app --api --database sqlite3
 
 # Or if installed globally
 create-rails-app
 create-rails-app --ruby 3.2.0 --rails 7.1.0 --name my-rails-app
+create-rails-app --api --database postgresql
 ```
 
 ## Features
