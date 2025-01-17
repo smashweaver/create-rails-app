@@ -11,7 +11,7 @@ fi
 show_help() {
   echo "Usage: create-rails-app [options]"
   echo "Options:"
-  echo "  --ruby <version>    Specify Ruby version (default: 3.3.6)"
+  echo "  --ruby <version>    Specify Ruby version (default: 3.3.7)"
   echo "  --rails <version>   Specify Rails version (default: 8.0.1)"
   echo "  --name <name>       Specify project name (default: myapp)"
   echo "  --database <db>     Specify database (options: postgresql, mysql, sqlite3; default: postgresql)"
@@ -71,7 +71,7 @@ while [[ "$#" -gt 0 ]]; do
 done
 
 # Set default values if not provided by arguments
-DEFAULT_RUBY_VERSION="3.3.6"
+DEFAULT_RUBY_VERSION="3.3.7"
 DEFAULT_RAILS_VERSION="8.0.1"
 DEFAULT_PROJECT_NAME="myapp"
 DEFAULT_DATABASE="postgresql"
