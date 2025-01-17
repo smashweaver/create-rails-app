@@ -15,6 +15,7 @@ show_help() {
   echo "  --rails <version>   Specify Rails version (default: 8.0.1)"
   echo "  --name <name>       Specify project name (default: myapp)"
   echo "  --database <db>     Specify database (options: postgresql, mysql, sqlite3; default: postgresql)"
+  echo "  --css <css>         Specify CSS framework (options: css, tailwind, sass, bootstrap, no-css, css-zero; default: css)"
   echo "  --api               Create an API-only Rails project (default: full-stack)"
   echo "  --help              Show this help message"
   exit 0
@@ -51,6 +52,10 @@ while [[ "$#" -gt 0 ]]; do
       DATABASE="$2"
       shift 2
       ;;
+    --css)
+      CSS_FRAMEWORK="$2"
+      shift 2
+      ;;
     --api)
       API_ONLY=true
       shift
@@ -70,6 +75,7 @@ DEFAULT_RUBY_VERSION="3.3.6"
 DEFAULT_RAILS_VERSION="8.0.1"
 DEFAULT_PROJECT_NAME="myapp"
 DEFAULT_DATABASE="postgresql"
+DEFAULT_CSS_FRAMEWORK="css"
 
 # Only prompt for Ruby version if not provided via command-line argument
 if [[ -z "$RUBY_VERSION" ]]; then
@@ -94,6 +100,12 @@ if [[ -z "$DATABASE" ]]; then
   DATABASE=$(prompt_for_input "Enter database (postgresql, mysql, sqlite3)" "$DEFAULT_DATABASE")
 fi
 
+# Only prompt for CSS framework if not provided via command-line argument
+if [[ -z "$CSS_FRAMEWORK" ]]; then
+   CSS_FRAMEWORK=$(prompt_for_input "Enter CSS framework (css, tailwind, sass, bootstrap, no-css, css-zero)" "$DEFAULT_CSS_FRAMEWORK")
+fi
+
+
 # Validate project name
 if [[ ! "$PROJECT_NAME" =~ ^[a-zA-Z0-9_-]+$ ]]; then
   echo "Error: Invalid project name. Only letters, numbers, hyphens, and underscores are allowed." >&2
@@ -112,11 +124,18 @@ if [[ ! "$DATABASE" =~ ^(postgresql|mysql|sqlite3)$ ]]; then
   exit 1
 fi
 
+# Validate CSS framework choice
+if [[ ! "$CSS_FRAMEWORK" =~ ^(css|tailwind|sass|bootstrap|no-css|css-zero)$ ]]; then
+  echo "Error: Invalid CSS framework choice. Must be one of: css, tailwind, sass, bootstrap, no-css, or css-zero." >&2
+  exit 1
+fi
+
 echo "You entered the following:"
 echo "Project name: $PROJECT_NAME"
 echo "Ruby version: $RUBY_VERSION"
 echo "Rails version: $RAILS_VERSION"
 echo "Database: $DATABASE"
+echo "CSS Framework: $CSS_FRAMEWORK"
 echo "API-only: ${API_ONLY:-false}"
 
 # Regular expressions for version validation
@@ -159,6 +178,27 @@ fi
 RAILS_NEW_COMMAND="rails new $PROJECT_NAME --database=$DATABASE"
 if [[ "$API_ONLY" == true ]]; then
   RAILS_NEW_COMMAND="$RAILS_NEW_COMMAND --api"
+else
+  case "$CSS_FRAMEWORK" in
+    "tailwind")
+      RAILS_NEW_COMMAND="$RAILS_NEW_COMMAND --css=tailwind"
+      ;;
+    "sass")
+      RAILS_NEW_COMMAND="$RAILS_NEW_COMMAND --css=sass"
+      ;;
+    "bootstrap")
+      RAILS_NEW_COMMAND="$RAILS_NEW_COMMAND --css=bootstrap"
+      ;;
+    "no-css")
+      RAILS_NEW_COMMAND="$RAILS_NEW_COMMAND --no-css"
+      ;;
+    "css")
+      RAILS_NEW_COMMAND="$RAILS_NEW_COMMAND --css=css"
+      ;;
+    "css-zero")
+      RAILS_NEW_COMMAND="$RAILS_NEW_COMMAND --no-css"
+      ;;
+  esac
 fi
 
 # Create Rails project
@@ -177,6 +217,25 @@ if ! bundle install; then
   exit 1
 fi
 
+# If css-zero is selected, install it
+if [[ "$CSS_FRAMEWORK" == "css-zero" ]]; then
+  echo "Installing css-zero gem..."
+  if ! bundle add css-zero; then
+     echo "Error: Failed to add css-zero gem" >&2
+     exit 1
+  fi
+  if ! bundle install; then
+     echo "Error: Failed to install missing gems after adding css-zero gem" >&2
+     exit 1
+  fi
+  echo "Running css-zero install generator..."
+  if ! bin/rails generate css_zero:install; then
+    echo "Error: Failed to install css-zero" >&2
+    exit 1
+  fi
+fi
+
+
 # Create .ruby-version file
 echo "$RUBY_VERSION" > .ruby-version
 
@@ -188,4 +247,5 @@ echo "Rails project '$PROJECT_NAME' created with:"
 echo "  Ruby version: $RUBY_VERSION"
 echo "  Rails version: $RAILS_VERSION"
 echo "  Database: $DATABASE"
+echo "  CSS Framework: $CSS_FRAMEWORK"
 echo "  API-only: ${API_ONLY:-false}"
