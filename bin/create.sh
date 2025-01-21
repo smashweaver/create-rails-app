@@ -15,7 +15,10 @@ show_help() {
   echo "  --rails <version>   Specify Rails version (default: 8.0.1)"
   echo "  --name <name>       Specify project name (default: myapp)"
   echo "  --database <db>     Specify database (options: postgresql, mysql, sqlite3; default: postgresql)"
+  echo "  --no-database       Skip database setup (default: uses selected database)"
   echo "  --css <css>         Specify CSS framework (options: tailwind, sass, postcss, no-css; default: no-css)"
+  echo "  --test <framework>  Specify testing framework (options: minitest, rspec; default: minitest)"
+  echo "  --no-test           Skip test setup (default: uses the selected test framework)"
   echo "  --api               Create an API-only Rails project (default: full-stack)"
   echo "  --help              Show this help message"
   exit 0
@@ -52,9 +55,21 @@ while [[ "$#" -gt 0 ]]; do
       DATABASE="$2"
       shift 2
       ;;
+     --no-database)
+      NO_DATABASE=true
+      shift
+      ;;
     --css)
       CSS_FRAMEWORK="$2"
       shift 2
+      ;;
+    --test)
+      TEST_FRAMEWORK="$2"
+      shift 2
+      ;;
+     --no-test)
+       NO_TEST=true
+       shift
       ;;
     --api)
       API_ONLY=true
@@ -76,6 +91,8 @@ DEFAULT_RAILS_VERSION="8.0.1"
 DEFAULT_PROJECT_NAME="myapp"
 DEFAULT_DATABASE="postgresql"
 DEFAULT_CSS_FRAMEWORK="no-css"
+DEFAULT_TEST_FRAMEWORK="minitest"
+
 
 # Only prompt for Ruby version if not provided via command-line argument
 if [[ -z "$RUBY_VERSION" ]]; then
@@ -95,14 +112,20 @@ if [[ -z "$PROJECT_NAME" ]]; then
   PROJECT_NAME=$(prompt_for_input "Enter project name" "$DEFAULT_PROJECT_NAME")
 fi
 
-# Only prompt for database if not provided via command-line argument
-if [[ -z "$DATABASE" ]]; then
+
+# Only prompt for database if --no-database is not set
+if [[ -z "$DATABASE" ]] && [[ -z "$NO_DATABASE" ]]; then
   DATABASE=$(prompt_for_input "Enter database (postgresql, mysql, sqlite3)" "$DEFAULT_DATABASE")
 fi
 
 # Only prompt for CSS framework if not provided via command-line argument
 if [[ -z "$CSS_FRAMEWORK" ]]; then
    CSS_FRAMEWORK=$(prompt_for_input "Enter CSS framework (tailwind, sass, postcss, no-css)" "$DEFAULT_CSS_FRAMEWORK")
+fi
+
+# Only prompt for test framework if --no-test is not set
+if [[ -z "$TEST_FRAMEWORK" ]] && [[ -z "$NO_TEST" ]]; then
+   TEST_FRAMEWORK=$(prompt_for_input "Enter testing framework (minitest, rspec)" "$DEFAULT_TEST_FRAMEWORK")
 fi
 
 
@@ -118,8 +141,9 @@ if [[ -d "$PROJECT_NAME" ]]; then
   exit 1
 fi
 
-# Validate database choice
-if [[ ! "$DATABASE" =~ ^(postgresql|mysql|sqlite3)$ ]]; then
+
+# Validate database choice if --no-database is not set
+if [[ -z "$NO_DATABASE" ]] && [[ ! "$DATABASE" =~ ^(postgresql|mysql|sqlite3)$ ]]; then
   echo "Error: Invalid database choice. Must be one of: postgresql, mysql, sqlite3." >&2
   exit 1
 fi
@@ -130,13 +154,29 @@ if [[ ! "$CSS_FRAMEWORK" =~ ^(tailwind|sass|postcss|no-css)$ ]]; then
   exit 1
 fi
 
+# Validate test framework choice if --no-test is not set
+if [[ -z "$NO_TEST" ]] && [[ ! "$TEST_FRAMEWORK" =~ ^(minitest|rspec)$ ]]; then
+    echo "Error: Invalid test framework choice. Must be one of: minitest or rspec." >&2
+    exit 1
+fi
+
 echo "You entered the following:"
 echo "Project name: $PROJECT_NAME"
 echo "Ruby version: $RUBY_VERSION"
 echo "Rails version: $RAILS_VERSION"
-echo "Database: $DATABASE"
+if [[ -z "$NO_DATABASE" ]]; then
+    echo "Database: $DATABASE"
+else
+    echo "Database: None (skipped)"
+fi
 echo "CSS Framework: $CSS_FRAMEWORK"
+if [[ -z "$NO_TEST" ]]; then
+     echo "Testing Framework: $TEST_FRAMEWORK"
+else
+     echo "Testing Framework: None (skipped)"
+fi
 echo "API-only: ${API_ONLY:-false}"
+
 
 # Regular expressions for version validation
 VERSION_REGEX="^[0-9]+(\\.[0-9]+)*$"
@@ -175,7 +215,12 @@ if ! gem install rails -v "$RAILS_VERSION"; then
 fi
 
 # Build the rails new command
-RAILS_NEW_COMMAND="rails new $PROJECT_NAME --database=$DATABASE"
+RAILS_NEW_COMMAND="rails new $PROJECT_NAME"
+if [[ -z "$NO_DATABASE" ]]; then
+    RAILS_NEW_COMMAND="$RAILS_NEW_COMMAND --database=$DATABASE"
+fi
+
+
 if [[ "$API_ONLY" == true ]]; then
   RAILS_NEW_COMMAND="$RAILS_NEW_COMMAND --api"
 else
@@ -195,6 +240,11 @@ else
   esac
 fi
 
+# add the --skip-test option if the user chooses no-test or rspec
+if [[ "$NO_TEST" == true ]] || [[ "$TEST_FRAMEWORK" == "rspec" ]] ; then
+    RAILS_NEW_COMMAND="$RAILS_NEW_COMMAND --skip-test"
+fi
+
 # Create Rails project
 echo "Creating Rails project '$PROJECT_NAME'..."
 if ! eval "$RAILS_NEW_COMMAND"; then
@@ -211,6 +261,18 @@ if ! bundle install; then
   exit 1
 fi
 
+# conditionally install RSpec
+if [[ "$NO_TEST" != true ]] && [[ "$TEST_FRAMEWORK" == "rspec" ]]; then
+    echo "Installing RSpec..."
+    if ! bundle add rspec-rails; then
+        echo "Error: Failed to install RSpec." >&2
+        exit 1
+    fi
+    if ! rails generate rspec:install; then
+      echo "Error: Failed to install rspec" >&2
+      exit 1
+    fi
+fi
 
 # Create .ruby-version file
 echo "$RUBY_VERSION" > .ruby-version
@@ -222,6 +284,15 @@ echo "$PROJECT_NAME" > .ruby-gemset
 echo "Rails project '$PROJECT_NAME' created with:"
 echo "  Ruby version: $RUBY_VERSION"
 echo "  Rails version: $RAILS_VERSION"
-echo "  Database: $DATABASE"
+if [[ -z "$NO_DATABASE" ]]; then
+    echo "  Database: $DATABASE"
+else
+     echo "  Database: None (skipped)"
+fi
 echo "  CSS Framework: $CSS_FRAMEWORK"
+if [[ -z "$NO_TEST" ]]; then
+     echo "  Testing Framework: $TEST_FRAMEWORK"
+else
+     echo "  Testing Framework: None (skipped)"
+fi
 echo "  API-only: ${API_ONLY:-false}"
