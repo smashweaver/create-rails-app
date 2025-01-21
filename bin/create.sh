@@ -16,7 +16,7 @@ show_help() {
   echo "  --name <name>       Specify project name (default: myapp)"
   echo "  --database <db>     Specify database (options: postgresql, mysql, sqlite3; default: postgresql)"
   echo "  --no-database       Skip database setup (default: uses selected database)"
-  echo "  --css <css>         Specify CSS framework (options: tailwind, sass, postcss, no-css; default: no-css)"
+  echo "  --css <css>         Specify CSS framework (options: tailwind, sass, postcss; default: uses vanilla css for full-stack, no css for API only)"
   echo "  --test <framework>  Specify testing framework (options: minitest, rspec; default: minitest)"
   echo "  --no-test           Skip test setup (default: uses the selected test framework)"
   echo "  --api               Create an API-only Rails project (default: full-stack)"
@@ -90,7 +90,7 @@ DEFAULT_RUBY_VERSION="3.3.7"
 DEFAULT_RAILS_VERSION="8.0.1"
 DEFAULT_PROJECT_NAME="myapp"
 DEFAULT_DATABASE="postgresql"
-DEFAULT_CSS_FRAMEWORK="no-css"
+DEFAULT_CSS_FRAMEWORK="vanilla"
 DEFAULT_TEST_FRAMEWORK="minitest"
 
 
@@ -119,9 +119,10 @@ if [[ -z "$DATABASE" ]] && [[ -z "$NO_DATABASE" ]]; then
 fi
 
 # Only prompt for CSS framework if not provided via command-line argument
-if [[ -z "$CSS_FRAMEWORK" ]]; then
-   CSS_FRAMEWORK=$(prompt_for_input "Enter CSS framework (tailwind, sass, postcss, no-css)" "$DEFAULT_CSS_FRAMEWORK")
+if [[ -z "$CSS_FRAMEWORK" ]] && [[ "$API_ONLY" != true ]]; then
+    CSS_FRAMEWORK=$(prompt_for_input "Enter CSS framework (tailwind, sass, postcss)" "$DEFAULT_CSS_FRAMEWORK")
 fi
+
 
 # Only prompt for test framework if --no-test is not set
 if [[ -z "$TEST_FRAMEWORK" ]] && [[ -z "$NO_TEST" ]]; then
@@ -149,10 +150,11 @@ if [[ -z "$NO_DATABASE" ]] && [[ ! "$DATABASE" =~ ^(postgresql|mysql|sqlite3)$ ]
 fi
 
 # Validate CSS framework choice
-if [[ ! "$CSS_FRAMEWORK" =~ ^(tailwind|sass|postcss|no-css)$ ]]; then
-  echo "Error: Invalid CSS framework choice. Must be one of: tailwind, sass, postcss, or no-css." >&2
+if [[ "$API_ONLY" != true ]] && [[ ! "$CSS_FRAMEWORK" =~ ^(tailwind|sass|postcss|vanilla)$ ]] && [[ -n "$CSS_FRAMEWORK" ]]; then
+  echo "Error: Invalid CSS framework choice. Must be one of: tailwind, sass, postcss, or vanilla." >&2
   exit 1
 fi
+
 
 # Validate test framework choice if --no-test is not set
 if [[ -z "$NO_TEST" ]] && [[ ! "$TEST_FRAMEWORK" =~ ^(minitest|rspec)$ ]]; then
@@ -222,22 +224,21 @@ fi
 
 
 if [[ "$API_ONLY" == true ]]; then
-  RAILS_NEW_COMMAND="$RAILS_NEW_COMMAND --api"
+    RAILS_NEW_COMMAND="$RAILS_NEW_COMMAND --api --no-css"
 else
-  case "$CSS_FRAMEWORK" in
-    "tailwind")
-      RAILS_NEW_COMMAND="$RAILS_NEW_COMMAND --css=tailwind"
-      ;;
-    "sass")
-      RAILS_NEW_COMMAND="$RAILS_NEW_COMMAND --css=sass"
-      ;;
-    "postcss")
-      RAILS_NEW_COMMAND="$RAILS_NEW_COMMAND --css=postcss"
-      ;;
-    "no-css")
-      RAILS_NEW_COMMAND="$RAILS_NEW_COMMAND --no-css"
-      ;;
-  esac
+    case "$CSS_FRAMEWORK" in
+        "tailwind")
+            RAILS_NEW_COMMAND="$RAILS_NEW_COMMAND --css=tailwind"
+            ;;
+        "sass")
+            RAILS_NEW_COMMAND="$RAILS_NEW_COMMAND --css=sass"
+            ;;
+        "postcss")
+            RAILS_NEW_COMMAND="$RAILS_NEW_COMMAND --css=postcss"
+            ;;
+        "vanilla")
+            ;;
+    esac
 fi
 
 # add the --skip-test option if the user chooses no-test or rspec
