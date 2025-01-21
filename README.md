@@ -52,12 +52,12 @@ npm create rails-app@latest -- --css no-css --name my-no-css-app
 
 # Or using npx (no installation required)
 npx create-rails-app
-npx create-rails-app -- --ruby 3.2.0 --rails 7.1.0 --name my-rails-app
-npx create-rails-app -- --api --database sqlite3
-npx create-rails-app -- --css tailwind --name my-tailwind-app
-npx create-rails-app -- --css sass --name my-sass-app
-npx create-rails-app -- --css postcss --name my-postcss-app
-npx create-rails-app -- --css no-css --name my-no-css-app
+npx create-rails-app --ruby 3.2.0 --rails 7.1.0 --name my-rails-app
+npx create-rails-app --api --database sqlite3
+npx create-rails-app --css tailwind --name my-tailwind-app
+npx create-rails-app --css sass --name my-sass-app
+npx create-rails-app --css postcss --name my-postcss-app
+npx create-rails-app --css no-css --name my-no-css-app
 
 # Or if installed globally
 create-rails-app
