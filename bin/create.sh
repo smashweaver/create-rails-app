@@ -12,8 +12,8 @@ show_help() {
   echo "Usage: create-rails-app [options]"
   echo "Options:"
   echo "  --ruby <version>    Specify Ruby version (default: 3.3.7)"
-  echo "  --rails <version>   Specify Rails version (default: 8.0.1)"
   echo "  --name <name>       Specify project name (default: myapp)"
+  echo "  --skip-rails        Skip generating the rails app, only setup ruby version and gemset"
   echo "  --database <db>     Specify database (options: postgresql, mysql, sqlite3; default: postgresql)"
   echo "  --no-database       Skip database setup (default: uses selected database)"
   echo "  --css <css>         Specify CSS framework (options: tailwind, sass, postcss; default: uses vanilla css for full-stack, no css for API only)"
@@ -43,13 +43,13 @@ while [[ "$#" -gt 0 ]]; do
       RUBY_VERSION="$2"
       shift 2
       ;;
-    --rails)
-      RAILS_VERSION="$2"
-      shift 2
-      ;;
     --name)
       PROJECT_NAME="$2"
       shift 2
+      ;;
+    --skip-rails)
+      SKIP_RAILS=true
+      shift
       ;;
     --database)
       DATABASE="$2"
@@ -87,11 +87,7 @@ done
 
 # Set default values if not provided by arguments
 DEFAULT_RUBY_VERSION="3.3.7"
-DEFAULT_RAILS_VERSION="8.0.1"
 DEFAULT_PROJECT_NAME="myapp"
-DEFAULT_DATABASE="postgresql"
-DEFAULT_CSS_FRAMEWORK="vanilla"
-DEFAULT_TEST_FRAMEWORK="minitest"
 
 
 # Only prompt for Ruby version if not provided via command-line argument
@@ -102,16 +98,89 @@ fi
 # Remove 'ruby-' prefix if present
 RUBY_VERSION="${RUBY_VERSION//ruby-/}"
 
-# Only prompt for Rails version if not provided via command-line argument
-if [[ -z "$RAILS_VERSION" ]]; then
-  RAILS_VERSION=$(prompt_for_input "Enter Rails version" "$DEFAULT_RAILS_VERSION")
-fi
 
 # Only prompt for project name if not provided via command-line argument
 if [[ -z "$PROJECT_NAME" ]]; then
   PROJECT_NAME=$(prompt_for_input "Enter project name" "$DEFAULT_PROJECT_NAME")
 fi
 
+
+# Validate project name
+if [[ ! "$PROJECT_NAME" =~ ^[a-zA-Z0-9_-]+$ ]]; then
+  echo "Error: Invalid project name. Only letters, numbers, hyphens, and underscores are allowed." >&2
+  exit 1
+fi
+
+# Check if project directory already exists
+if [[ -d "$PROJECT_NAME" ]] && [[ "$SKIP_RAILS" != true ]]; then
+  echo "Error: Directory '$PROJECT_NAME' already exists. Please choose a different project name." >&2
+  exit 1
+fi
+
+
+# Regular expressions for version validation
+VERSION_REGEX="^[0-9]+(\\.[0-9]+)*$"
+
+# Validate Ruby version
+if [[ ! "$RUBY_VERSION" =~ $VERSION_REGEX ]]; then
+  echo "Error: Invalid Ruby version format. Expected format: 'X.Y.Z' (e.g., 3.3.6)." >&2
+  exit 1
+fi
+
+echo "You entered the following:"
+echo "Project name: $PROJECT_NAME"
+echo "Ruby version: $RUBY_VERSION"
+if [[ -z "$SKIP_RAILS" ]]; then
+  echo "Database: $DATABASE"
+  echo "CSS Framework: $CSS_FRAMEWORK"
+  echo "Testing Framework: $TEST_FRAMEWORK"
+  echo "API-only: ${API_ONLY:-false}"
+fi
+echo "Skip Rails: ${SKIP_RAILS:-false}"
+
+
+# Install the specified Ruby version
+echo "Installing Ruby $RUBY_VERSION..."
+if ! rvm install "$RUBY_VERSION"; then
+  echo "Error: Failed to install Ruby $RUBY_VERSION." >&2
+  exit 1
+fi
+
+# Create and use the gemset for the project
+echo "Creating gemset '$PROJECT_NAME' for Ruby $RUBY_VERSION..."
+if ! rvm use "$RUBY_VERSION@$PROJECT_NAME" --create; then
+  echo "Error: Failed to create or use gemset '$PROJECT_NAME'." >&2
+  exit 1
+fi
+
+
+# Skip Rails app generation if --skip-rails is set
+if [[ "$SKIP_RAILS" == true ]]; then
+    # Create project directory
+    echo "Creating directory '$PROJECT_NAME'..."
+    mkdir "$PROJECT_NAME"
+    cd "$PROJECT_NAME"
+
+    # Create .ruby-version file
+    echo "$RUBY_VERSION" > .ruby-version
+
+    # Create .ruby-gemset file
+    echo "$PROJECT_NAME" > .ruby-gemset
+    echo "Rails app generation skipped."
+    echo "Project directory '$PROJECT_NAME' created with Ruby version and gemset setup."
+    exit 0
+fi
+
+# Set default values if not provided by arguments
+DEFAULT_RAILS_VERSION="8.0.1"
+DEFAULT_DATABASE="postgresql"
+DEFAULT_CSS_FRAMEWORK="vanilla"
+DEFAULT_TEST_FRAMEWORK="minitest"
+
+# Only prompt for Rails version if not provided via command-line argument
+if [[ -z "$RAILS_VERSION" ]]; then
+  RAILS_VERSION=$(prompt_for_input "Enter Rails version" "$DEFAULT_RAILS_VERSION")
+fi
 
 # Only prompt for database if --no-database is not set
 if [[ -z "$DATABASE" ]] && [[ -z "$NO_DATABASE" ]]; then
@@ -128,20 +197,6 @@ fi
 if [[ -z "$TEST_FRAMEWORK" ]] && [[ -z "$NO_TEST" ]]; then
    TEST_FRAMEWORK=$(prompt_for_input "Enter testing framework (minitest, rspec)" "$DEFAULT_TEST_FRAMEWORK")
 fi
-
-
-# Validate project name
-if [[ ! "$PROJECT_NAME" =~ ^[a-zA-Z0-9_-]+$ ]]; then
-  echo "Error: Invalid project name. Only letters, numbers, hyphens, and underscores are allowed." >&2
-  exit 1
-fi
-
-# Check if project directory already exists
-if [[ -d "$PROJECT_NAME" ]]; then
-  echo "Error: Directory '$PROJECT_NAME' already exists. Please choose a different project name." >&2
-  exit 1
-fi
-
 
 # Validate database choice if --no-database is not set
 if [[ -z "$NO_DATABASE" ]] && [[ ! "$DATABASE" =~ ^(postgresql|mysql|sqlite3)$ ]]; then
@@ -162,50 +217,10 @@ if [[ -z "$NO_TEST" ]] && [[ ! "$TEST_FRAMEWORK" =~ ^(minitest|rspec)$ ]]; then
     exit 1
 fi
 
-echo "You entered the following:"
-echo "Project name: $PROJECT_NAME"
-echo "Ruby version: $RUBY_VERSION"
-echo "Rails version: $RAILS_VERSION"
-if [[ -z "$NO_DATABASE" ]]; then
-    echo "Database: $DATABASE"
-else
-    echo "Database: None (skipped)"
-fi
-echo "CSS Framework: $CSS_FRAMEWORK"
-if [[ -z "$NO_TEST" ]]; then
-     echo "Testing Framework: $TEST_FRAMEWORK"
-else
-     echo "Testing Framework: None (skipped)"
-fi
-echo "API-only: ${API_ONLY:-false}"
-
-
-# Regular expressions for version validation
-VERSION_REGEX="^[0-9]+(\\.[0-9]+)*$"
-
-# Validate Ruby version
-if [[ ! "$RUBY_VERSION" =~ $VERSION_REGEX ]]; then
-  echo "Error: Invalid Ruby version format. Expected format: 'X.Y.Z' (e.g., 3.3.6)." >&2
-  exit 1
-fi
 
 # Validate Rails version
 if [[ ! "$RAILS_VERSION" =~ $VERSION_REGEX ]]; then
   echo "Error: Invalid Rails version format. Expected format: 'X.Y.Z' (e.g., 8.0.0)." >&2
-  exit 1
-fi
-
-# Install the specified Ruby version
-echo "Installing Ruby $RUBY_VERSION..."
-if ! rvm install "$RUBY_VERSION"; then
-  echo "Error: Failed to install Ruby $RUBY_VERSION." >&2
-  exit 1
-fi
-
-# Create and use the gemset for the project
-echo "Creating gemset '$PROJECT_NAME' for Ruby $RUBY_VERSION..."
-if ! rvm use "$RUBY_VERSION@$PROJECT_NAME" --create; then
-  echo "Error: Failed to create or use gemset '$PROJECT_NAME'." >&2
   exit 1
 fi
 
@@ -281,19 +296,22 @@ echo "$RUBY_VERSION" > .ruby-version
 # Create .ruby-gemset file
 echo "$PROJECT_NAME" > .ruby-gemset
 
+
 # Print success message
 echo "Rails project '$PROJECT_NAME' created with:"
 echo "  Ruby version: $RUBY_VERSION"
-echo "  Rails version: $RAILS_VERSION"
-if [[ -z "$NO_DATABASE" ]]; then
-    echo "  Database: $DATABASE"
-else
-     echo "  Database: None (skipped)"
+if [[ -z "$SKIP_RAILS" ]]; then
+  echo "  Rails version: $RAILS_VERSION"
+  if [[ -z "$NO_DATABASE" ]]; then
+      echo "  Database: $DATABASE"
+  else
+       echo "  Database: None (skipped)"
+  fi
+  echo "  CSS Framework: $CSS_FRAMEWORK"
+  if [[ -z "$NO_TEST" ]]; then
+       echo "  Testing Framework: $TEST_FRAMEWORK"
+  else
+       echo "  Testing Framework: None (skipped)"
+  fi
+    echo "  API-only: ${API_ONLY:-false}"
 fi
-echo "  CSS Framework: $CSS_FRAMEWORK"
-if [[ -z "$NO_TEST" ]]; then
-     echo "  Testing Framework: $TEST_FRAMEWORK"
-else
-     echo "  Testing Framework: None (skipped)"
-fi
-echo "  API-only: ${API_ONLY:-false}"
